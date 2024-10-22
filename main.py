@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from Utils.getURL import *
+from utils.getURL import *
 from constants.account import *
 
 
@@ -244,7 +244,7 @@ class WeiboSpyder:
             print('size:', len(st))
             check_height = self.browser.execute_script(
                 "return document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop;")
-            if check_height == cur_top or len(st) >= 20:
+            if check_height == cur_top or len(st) >= 25:
                 break
             cur_top = check_height
         l = list(st)
@@ -267,8 +267,8 @@ class WeiboSpyder:
                 EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
             )
             jmap = json.loads(el.text)
-            print('Mid:', jmap['mid'])
-            print('Url：', info_url)
+            print('Mid:', jmap['id'])
+            print('Url:', info_url)
             print('Content:', jmap['text_raw'])
             print('Reposts:', jmap['reposts_count'])
             print('Comments:', jmap['comments_count'])
@@ -293,9 +293,11 @@ class WeiboSpyder:
         with open(f'./temp/{self.user_id}/mid.json', 'r', encoding='utf-8') as f:
             dic = json.load(f)
             mids = dic['mid']
-
         if layer == 1:
+            total = []
+            os.mkdir(f'./temp/{self.user_id}/comments_1st')
             for mid in mids:
+                comment_id_container = []
                 blog_id, url = getCommentUrl(user_id=self.user_id, mid=mid)
                 self.browser.get(url)
                 try:
@@ -306,6 +308,7 @@ class WeiboSpyder:
                     continue
                 print('Comments:')
                 jmap_comment = json.loads(el.text)['data']
+                sub_total = []
                 for item in jmap_comment:
                     print('id:', item['id'])
                     print('mid:', blog_id)
@@ -315,6 +318,65 @@ class WeiboSpyder:
                     print('Content:', item['text'])
                     print('Attitudes:', item['like_counts'])
                     print('Reply:', item['total_number'])
+                    mp = {
+                        'id': item['id'],
+                        'mid': blog_id,
+                        'name':item['user']['screen_name'],
+                        'time':item['created_at'],
+                        'islayer1':True,
+                        'content':item['text'],
+                        'attitudes':item['like_counts'],
+                        'reply':item['total_number']
+                    }
+                    comment_id_container.append(item['id'])
+                    sub_total.append(mp)
+                total.append(sub_total)
+                with open(f'./temp/{self.user_id}/comments_1st/{blog_id}_ids.json', 'w', encoding='utf-8') as f:
+                    json.dump(comment_id_container, f)
+            with open(f'./results/{self.user_id}/mlog/mid_comments_1.txt', 'w', encoding='utf-8') as f:
+                f.write(str(total))
+        else:
+            dirs = os.listdir(f'./temp/{self.user_id}/comments_1st')
+            global_total = []
+            for dir in dirs:
+                mid = dir.split('_')[0]
+                path = f'./temp/{self.user_id}/comments_1st/{dir}'
+                with open(path, 'r', encoding='utf-8') as f:
+                    jmap_comment = json.loads(f.read())
+                total = []
+                for pre_id in jmap_comment:
+                    nxt_url = getCommentSecondLayerUrl(user_id=self.user_id, pre_id=pre_id)
+                    self.browser.get(nxt_url)
+                    try:
+                        el = WebDriverWait(self.browser, 10).until(
+                            EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+                        )
+                        data = json.loads(el.text)['data']
+                    except Exception as e:
+                        continue
+                    sub_total = []
+                    for item in data:
+                        print('id:', item['id'])
+                        print('mid:', mid)
+                        print('name:', item['user']['screen_name'])
+                        print('time:', item['created_at'])
+                        print('content:', item['text'])
+                        print('isLayer1:', False)
+                        print('pre_id:',item['rootid'])
+                        mp = {
+                            'id': item['id'],
+                            'mid': mid,
+                            'name':item['user']['screen_name'],
+                            'time':item['created_at'],
+                            'content':item['text'],
+                            'islayer1':False,
+                            'pre_id':item['rootid'],
+                        }
+                        sub_total.append(mp)
+                    total.append(sub_total)
+                global_total.append(total)
+            with open(f'./results/{self.user_id}/mlog/mid_comments_2.txt', 'w', encoding='utf-8') as f:
+                f.write(str(global_total))
 
     def work(self):
         print('Get user info...')
@@ -325,14 +387,18 @@ class WeiboSpyder:
         print('OK')
         # print('get fans info...')
         # self.getFansInfo()
+        # print('OK')
         print('Get prime blogs mids...')
         self.getPrimeBlogs()
         print('OK')
         print('Get prime blogs info...')
         self.getPrimeBlogsInfo()
         print('OK')
-        print('Get 1 Layer comments info...')
+        print('Get 1st Layer comments info...')
         self.getBlogCommentsInfo(layer=1)
+        print('OK')
+        print('Get 2nd Layer comments info...')
+        self.getBlogCommentsInfo(layer=2)
         print('OK')
 
 
@@ -354,5 +420,5 @@ if __name__ == '__main__':
             os.mkdir(f'./results/{userid}')
             weiboSpyder = WeiboSpyder(userid, HEADLESS)
             weiboSpyder.work()
-            if cnt == 1:
-                break
+            # if cnt == 1:
+            #     break

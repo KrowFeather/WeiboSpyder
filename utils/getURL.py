@@ -1,4 +1,4 @@
-from Utils.mid_to_id import mid_to_id
+from utils.mid_to_id import mid_to_id
 
 
 def getHomeUrl(user_id):
@@ -23,4 +23,8 @@ def getBlogInfoUrl(mid):
 
 def getCommentUrl(user_id, mid):
     blog_id = mid_to_id(mid)
-    return blog_id,f'https://weibo.com/ajax/statuses/buildComments?is_reload=1&id={blog_id}&is_show_bulletin=2&is_mix=0&count=10&uid={user_id}&fetch_level=0&locale=zh-CN'
+    return blog_id, f'https://weibo.com/ajax/statuses/buildComments?is_reload=1&id={blog_id}&is_show_bulletin=2&is_mix=0&count=10&uid={user_id}&fetch_level=0&locale=zh-CN'
+
+
+def getCommentSecondLayerUrl(user_id, pre_id):
+    return f'https://weibo.com/ajax/statuses/buildComments?is_reload=1&id={pre_id}&is_show_bulletin=2&is_mix=1&fetch_level=1&max_id=0&count=20&uid={user_id}&locale=zh-CN'
