@@ -1,15 +1,14 @@
 import json
 import os
 import re
-import time
 import shutil
+import time
 import urllib.request
 
 import cv2
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 
 from constants.account import MAIL_ACC, MAIL_PWD, PHONE, PHONE_PWD, PHONE_ACC, MAIL, HEADLESS, HEAD
 
@@ -58,12 +57,12 @@ def get_tracks(dis):
     # 保存0.3内的位移
     tracks = []
     current = 0
-    mid = dis * 4 / 5
+    mid = dis * 3 / 5
     while current <= dis:
         if current < mid:
             a = 5
         else:
-            a = -1
+            a = -3
         v0 = v
         s = v0 * m + 0.5 * a * (m ** 2)
         current += s
@@ -111,7 +110,7 @@ def addOptions(type):
 def login(type):
     print('Login...')
     if type == 1:
-        browser = webdriver.Chrome(options=addOptions(HEADLESS))
+        browser = webdriver.Chrome(options=addOptions(HEAD))
         browser.get('https://mail.sina.com.cn/')
         time.sleep(2)
         acc_input = browser.find_element(By.ID, 'freename')
@@ -172,7 +171,7 @@ def getFansUrl(user_id):
 
 
 class WeiboSpyder:
-    def __init__(self, user_id,option):
+    def __init__(self, user_id, option):
         self.user_id = user_id
         self.browser = webdriver.Chrome(options=addOptions(option))
         self.url = getUserUrl(user_id)
@@ -245,13 +244,19 @@ class WeiboSpyder:
             cur_top = check_height
         l = list(st)
         mp = {'mid': l}
-        with open(f'./results/{self.user_id}/primeblogs.json', 'w', encoding='utf-8') as f:
+        os.mkdir(f'./results/{self.user_id}/mlog')
+        os.mkdir(f'./temp/{self.user_id}')
+        with open(f'./temp/{self.user_id}/mid.json', 'w', encoding='utf-8') as f:
             json.dump(mp, f)
-        print(st)
+        with open(f'./results/{self.user_id}/mlog/mid.txt', 'w', encoding='utf-8') as f:
+            f.write(str(mp))
         time.sleep(2)
 
     def getPrimeBlogsInfo(self):
-        pass
+        with open(f'./temp/{self.user_id}/mid.json', 'r', encoding='utf-8') as f:
+            dic = json.load(f)
+            mids = dic['mid']
+        print(mids)
 
     def work(self):
         print('Get user info...')
@@ -270,9 +275,11 @@ class WeiboSpyder:
         print('OK')
 
 
-
 if __name__ == '__main__':
     login(MAIL)
+    if os.path.exists('./temp'):
+        shutil.rmtree('./temp')
+    os.mkdir('./temp')
     with open('./resource/users.txt', 'r', encoding='utf-8') as f:
         for line in f.readlines():
             lis = line.strip().split(' ')
@@ -282,5 +289,5 @@ if __name__ == '__main__':
             if os.path.exists(f'./results/{userid}'):
                 shutil.rmtree(f'./results/{userid}')
             os.mkdir(f'./results/{userid}')
-            weiboSpyder = WeiboSpyder(userid,HEADLESS)
+            weiboSpyder = WeiboSpyder(userid, HEADLESS)
             weiboSpyder.work()
