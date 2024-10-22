@@ -4,16 +4,18 @@ import re
 import shutil
 import time
 import urllib.request
-
 import cv2
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 
-from constants.account import MAIL_ACC, MAIL_PWD, PHONE, PHONE_PWD, PHONE_ACC, MAIL, HEADLESS, HEAD
+from Utils.getURL import *
+from constants.account import *
 
 
-def get_pos(template, block, driver):
+def get_pos(template, block):
     blockJpg = './resource/blockJpg.jpg'
     templateJpg = './resource/templateJpg.jpg'
     block = cv2.imread(block, 0)
@@ -73,9 +75,13 @@ def get_tracks(dis):
 
 def autoSlider(browser):
     print('Get Slider...')
-    time.sleep(2)
-    captcha = browser.find_element(By.XPATH, "/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[1]/div[2]")
-    cap_block = browser.find_element(By.XPATH, '/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[1]/div[1]/div[1]')
+    captcha = WebDriverWait(browser, 10).until(
+        EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[1]/div[2]'))
+    )
+    cap_block = WebDriverWait(browser, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, '/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[1]/div[1]/div[1]'))
+    )
     s = captcha.get_attribute("style")
     s_b = cap_block.get_attribute("style")
     p = 'background-image: url\(\"(.*?)\"\);'
@@ -85,12 +91,13 @@ def autoSlider(browser):
     urllib.request.urlretrieve(cap_blockSrc, './resource/captchaSlider_block.png')
     print('OK: Slider Got')
     print('Get Position...')
-    dis, _ = get_pos('./resource/captchaSlider.png', './resource/captchaSlider_block.png', browser)
-    time.sleep(1)
+    dis, _ = get_pos('./resource/captchaSlider.png', './resource/captchaSlider_block.png')
     print('OK: position got, distance got')
     tracks = get_tracks(dis)
     tracks.append(-(sum(tracks) - dis))
-    element = browser.find_element(By.XPATH, '/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[2]/div/div[3]')
+    element = WebDriverWait(browser, 10).until(
+        EC.presence_of_element_located((By.XPATH, '/html/body/div[4]/div[1]/div[1]/div[2]/div/div/div[2]/div/div[3]'))
+    )
     ActionChains(browser).click_and_hold(on_element=element).perform()
     for track in tracks:
         ActionChains(browser).move_by_offset(xoffset=track, yoffset=0).perform()
@@ -112,19 +119,23 @@ def login(type):
     if type == 1:
         browser = webdriver.Chrome(options=addOptions(HEAD))
         browser.get('https://mail.sina.com.cn/')
-        time.sleep(2)
-        acc_input = browser.find_element(By.ID, 'freename')
+        time.sleep(3)
+        acc_input = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.ID, 'freename'))
+        )
         acc_input.send_keys(MAIL_ACC)
-        pwd_input = browser.find_element(By.ID, 'freepassword')
+        pwd_input = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.ID, 'freepassword'))
+        )
         pwd_input.send_keys(MAIL_PWD)
-        time.sleep(1)
-        loginBtn = browser.find_element(By.XPATH, "//a[@class='loginBtn']")
+        loginBtn = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//a[@class='loginBtn']"))
+        )
         loginBtn.click()
-        time.sleep(2)
         print('Auto Sliding...')
         autoSlider(browser)
-        time.sleep(6)
         print('OK: Auto Slide OK')
+        time.sleep(6)
         browser.get('https://weibo.com')
         time.sleep(3)
         cookies = browser.get_cookies()
@@ -135,15 +146,22 @@ def login(type):
         browser = webdriver.Chrome(options=addOptions(HEAD))
         browser.get('https://passport.weibo.com/sso/signin')
         time.sleep(2)
-        el = browser.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/ul/li[2]/a')
+        el = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/div[2]/div/ul/li[2]/a'))
+        )
         el.click()
-        time.sleep(1)
-        acc_input = browser.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/form/div[1]/input')
+        time.sleep(0.5)
+        acc_input = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/div[2]/div/form/div[1]/input'))
+        )
         acc_input.send_keys(PHONE_ACC)
-        pwd_input = browser.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/form/div[2]/input')
+        pwd_input = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/div/div/div/div[2]/div/form/div[2]/input'))
+        )
         pwd_input.send_keys(PHONE_PWD)
-        time.sleep(1)
-        loginBtn = browser.find_element(By.XPATH, "/html/body/div/div/div/div[2]/div/button")
+        loginBtn = WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, "/html/body/div/div/div/div[2]/div/button"))
+        )
         loginBtn.click()
         time.sleep(25)
         browser.get('https://weibo.com')
@@ -152,22 +170,6 @@ def login(type):
         with open('./resource/cookie.json', 'w') as f:
             f.write(json.dumps(cookies))
         print('OK: Login Success, Cookie Saved!')
-
-
-def getHomeUrl(user_id):
-    return f'https://weibo.com/u/{user_id}'
-
-
-def getUserUrl(user_id):
-    return f'https://weibo.com/ajax/profile/info?uid={user_id}'
-
-
-def getFriendUrl(user_id):
-    return f'https://weibo.com/ajax/friendships/friends?page=1&uid={user_id}'
-
-
-def getFansUrl(user_id):
-    return f'https://weibo.com/ajax/friendships/friends?relate=fans&page=1&uid={user_id}&type=all&newFollowerCount=0'
 
 
 class WeiboSpyder:
@@ -181,8 +183,9 @@ class WeiboSpyder:
 
     def getUserInfo(self):
         self.browser.get(self.url)
-        time.sleep(3)
-        el = self.browser.find_element(By.XPATH, '/html/body/pre')
+        el = WebDriverWait(self.browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+        )
         print(el.text)
         content = json.loads(el.text)
         with open(f'./results/{self.user_id}/{self.user_id}_info.txt', 'w', encoding='utf-8') as f:
@@ -196,8 +199,9 @@ class WeiboSpyder:
                 self.browser.add_cookie(cookie)
         time.sleep(2)
         self.browser.refresh()
-        time.sleep(2)
-        el = self.browser.find_element(By.XPATH, '/html/body/pre')
+        el = WebDriverWait(self.browser, 10).until(
+            EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+        )
         content = json.loads(el.text)
         print(content)
         with open(f'./results/{self.user_id}/{self.user_id}_friends.txt', 'w', encoding='utf-8') as f:
@@ -228,8 +232,9 @@ class WeiboSpyder:
         while True:
             self.browser.execute_script("window.scrollBy(0,500)")
             time.sleep(3)
-            els = self.browser.find_elements(By.CLASS_NAME, 'head-info_time_6sFQg')
-            time.sleep(2)
+            els = WebDriverWait(self.browser, 10).until(
+                EC.presence_of_all_elements_located((By.CLASS_NAME, 'head-info_time_6sFQg'))
+            )
             for el in els:
                 try:
                     st.add(el.get_attribute('href').split('/')[-1])
@@ -248,15 +253,68 @@ class WeiboSpyder:
         os.mkdir(f'./temp/{self.user_id}')
         with open(f'./temp/{self.user_id}/mid.json', 'w', encoding='utf-8') as f:
             json.dump(mp, f)
-        with open(f'./results/{self.user_id}/mlog/mid.txt', 'w', encoding='utf-8') as f:
-            f.write(str(mp))
         time.sleep(2)
 
     def getPrimeBlogsInfo(self):
         with open(f'./temp/{self.user_id}/mid.json', 'r', encoding='utf-8') as f:
             dic = json.load(f)
             mids = dic['mid']
-        print(mids)
+        total = []
+        for mid in mids:
+            info_url = getBlogInfoUrl(mid)
+            self.browser.get(info_url)
+            el = WebDriverWait(self.browser, 10).until(
+                EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+            )
+            jmap = json.loads(el.text)
+            print('Mid:', jmap['mid'])
+            print('Url：', info_url)
+            print('Content:', jmap['text_raw'])
+            print('Reposts:', jmap['reposts_count'])
+            print('Comments:', jmap['comments_count'])
+            print('Attitudes:', jmap['attitudes_count'])
+            print('Time:', jmap['created_at'])
+            print('Title', jmap['title'])
+            mp = {
+                'mid': jmap['mid'],
+                'url': info_url,
+                'title': jmap['title'],
+                'time': jmap['created_at'],
+                'content': jmap['text_raw'],
+                'reposts_count': jmap['reposts_count'],
+                'comments_count': jmap['comments_count'],
+                'attitudes_count': jmap['attitudes_count'],
+            }
+            total.append(mp)
+        with open(f'./results/{self.user_id}/mlog/mid.txt', 'w', encoding='utf-8') as f:
+            f.write(str(total))
+
+    def getBlogCommentsInfo(self, layer):
+        with open(f'./temp/{self.user_id}/mid.json', 'r', encoding='utf-8') as f:
+            dic = json.load(f)
+            mids = dic['mid']
+
+        if layer == 1:
+            for mid in mids:
+                blog_id, url = getCommentUrl(user_id=self.user_id, mid=mid)
+                self.browser.get(url)
+                try:
+                    el = WebDriverWait(self.browser, 10).until(
+                        EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+                    )
+                except Exception as e:
+                    continue
+                print('Comments:')
+                jmap_comment = json.loads(el.text)['data']
+                for item in jmap_comment:
+                    print('id:', item['id'])
+                    print('mid:', blog_id)
+                    print('name:', item['user']['screen_name'])
+                    print('Time:', item['created_at'])
+                    print('IsLayer1:', True)
+                    print('Content:', item['text'])
+                    print('Attitudes:', item['like_counts'])
+                    print('Reply:', item['total_number'])
 
     def work(self):
         print('Get user info...')
@@ -273,6 +331,9 @@ class WeiboSpyder:
         print('Get prime blogs info...')
         self.getPrimeBlogsInfo()
         print('OK')
+        print('Get 1 Layer comments info...')
+        self.getBlogCommentsInfo(layer=1)
+        print('OK')
 
 
 if __name__ == '__main__':
@@ -280,14 +341,18 @@ if __name__ == '__main__':
     if os.path.exists('./temp'):
         shutil.rmtree('./temp')
     os.mkdir('./temp')
+    cnt = 0
     with open('./resource/users.txt', 'r', encoding='utf-8') as f:
         for line in f.readlines():
-            lis = line.strip().split(' ')
+            cnt += 1
+            lis = line.strip().split('  ')
             userid = lis[0]
             username = lis[1]
-            print(userid, username)
+            print('id:', userid, 'name:', username)
             if os.path.exists(f'./results/{userid}'):
                 shutil.rmtree(f'./results/{userid}')
             os.mkdir(f'./results/{userid}')
             weiboSpyder = WeiboSpyder(userid, HEADLESS)
             weiboSpyder.work()
+            if cnt == 1:
+                break
