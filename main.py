@@ -182,23 +182,38 @@ class WeiboSpyder:
         self.home_url = getHomeUrl(user_id)
 
     def getUserInfo(self):
-        self.browser.get(self.url)
-        el = WebDriverWait(self.browser, 10).until(
-            EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
-        )
-        print(el.text)
-        content = json.loads(el.text)
-        with open(f'./results/{self.user_id}/{self.user_id}_info.txt', 'w', encoding='utf-8') as f:
-            f.write(str(content['data']['user']))
+        flag = True
+        while flag:
+            try:
+                self.browser.get(self.url)
+                el = WebDriverWait(self.browser, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
+                )
+                print(el.text)
+                content = json.loads(el.text)
+                with open(f'./results/{self.user_id}/{self.user_id}_info.txt', 'w', encoding='utf-8') as f:
+                    f.write(str(content['data']['user']))
+                flag = False
+            except Exception as e:
+                print('访问频繁，等待。。。')
+                flag = True
+                time.sleep(120)
 
     def getFriendInfo(self):
-        self.browser.get(self.friends_url)
-        with open('./resource/cookie.json', 'r') as f:
-            cookies = json.loads(f.read())
-            for cookie in cookies:
-                self.browser.add_cookie(cookie)
-        time.sleep(2)
-        self.browser.refresh()
+        flag = True
+        while flag:
+            try:
+                self.browser.get(self.friends_url)
+                with open('./resource/cookie.json', 'r') as f:
+                    cookies = json.loads(f.read())
+                    for cookie in cookies:
+                        self.browser.add_cookie(cookie)
+                time.sleep(2)
+                self.browser.refresh()
+                flag = False
+            except Exception as e:
+                login(MAIL)
+                flag = True
         el = WebDriverWait(self.browser, 10).until(
             EC.presence_of_element_located((By.XPATH, '/html/body/pre'))
         )
@@ -321,12 +336,12 @@ class WeiboSpyder:
                     mp = {
                         'id': item['id'],
                         'mid': blog_id,
-                        'name':item['user']['screen_name'],
-                        'time':item['created_at'],
-                        'islayer1':True,
-                        'content':item['text'],
-                        'attitudes':item['like_counts'],
-                        'reply':item['total_number']
+                        'name': item['user']['screen_name'],
+                        'time': item['created_at'],
+                        'islayer1': True,
+                        'content': item['text'],
+                        'attitudes': item['like_counts'],
+                        'reply': item['total_number']
                     }
                     comment_id_container.append(item['id'])
                     sub_total.append(mp)
@@ -362,15 +377,15 @@ class WeiboSpyder:
                         print('time:', item['created_at'])
                         print('content:', item['text'])
                         print('isLayer1:', False)
-                        print('pre_id:',item['rootid'])
+                        print('pre_id:', item['rootid'])
                         mp = {
                             'id': item['id'],
                             'mid': mid,
-                            'name':item['user']['screen_name'],
-                            'time':item['created_at'],
-                            'content':item['text'],
-                            'islayer1':False,
-                            'pre_id':item['rootid'],
+                            'name': item['user']['screen_name'],
+                            'time': item['created_at'],
+                            'content': item['text'],
+                            'islayer1': False,
+                            'pre_id': item['rootid'],
                         }
                         sub_total.append(mp)
                     total.append(sub_total)
@@ -403,14 +418,18 @@ class WeiboSpyder:
 
 
 if __name__ == '__main__':
-    login(MAIL)
     if os.path.exists('./temp'):
         shutil.rmtree('./temp')
     os.mkdir('./temp')
-    cnt = 0
     with open('./resource/users.txt', 'r', encoding='utf-8') as f:
-        for line in f.readlines():
-            cnt += 1
+        lines = f.readlines()
+        with open('./resource/breakpoint.txt', 'r', encoding='utf-8') as f:
+            bp = int(f.read())
+        for i in range(len(lines)):
+            if i < bp:
+                continue
+            print(i)
+            line = lines[i]
             lis = line.strip().split('  ')
             userid = lis[0]
             username = lis[1]
@@ -420,5 +439,6 @@ if __name__ == '__main__':
             os.mkdir(f'./results/{userid}')
             weiboSpyder = WeiboSpyder(userid, HEADLESS)
             weiboSpyder.work()
-            # if cnt == 1:
-            #     break
+            bp+=1
+            with open('./resource/breakpoint.txt', 'w', encoding='utf-8') as f:
+                f.write(str(bp))
