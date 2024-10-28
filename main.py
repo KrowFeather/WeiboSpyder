@@ -418,6 +418,7 @@ class WeiboSpyder:
 
 
 if __name__ == '__main__':
+    # login(MAIL)
     if os.path.exists('./temp'):
         shutil.rmtree('./temp')
     os.mkdir('./temp')

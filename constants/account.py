@@ -1,7 +1,7 @@
-MAIL_ACC = ''
-MAIL_PWD = ''
-PHONE_ACC = ''
-PHONE_PWD = ''
+MAIL_ACC = 'krowfeather@sina.com'
+MAIL_PWD = 'jommybroiler233'
+PHONE_ACC = '13998717657'
+PHONE_PWD = 'jommybroiler233'
 
 MAIL = 1
 PHONE = 0
